@@ -1,7 +1,7 @@
 import flatpickr from 'flatpickr';
 // Додатковий імпорт стилів
 import 'flatpickr/dist/flatpickr.min.css';
-// import { Report } from 'notiflix/build/notiflix-report-aio';
+import { Notify } from 'notiflix/build/notiflix-notify-aio';
 
 const inputEl = document.getElementById('datetime-picker');
 const btnEl = document.querySelector('button');
@@ -12,53 +12,41 @@ const secondsEl = document.querySelector('span[data-seconds]');
 
 btnEl.setAttribute('disabled', true);
 btnEl.addEventListener('click', handleStart);
-let selectedDate = null;
+let selectDate;
 const options = {
   enableTime: true,
   time_24hr: true,
   defaultDate: new Date(),
   minuteIncrement: 1,
   onClose(selectedDates) {
-    selectedDate = selectedDates[0];
-    if (selectedDate < now) {
-      alert('Please choose a date in the future');
+    if (selectedDates[0] <= new Date()) {
+      Notify.failure('Please choose a date in the future');
     } else {
       btnEl.removeAttribute('disabled', true);
+      selectDate = selectedDates[0];
     }
   },
 };
-const now = new Date();
-const opt = {
-  hour: 'numeric',
-  minute: 'numeric',
-  day: 'numeric',
-  month: 'numeric',
-  year: 'numeric',
-  dateFormat: 'Y-m-d H:i',
-};
-const locale = navigator.language;
-inputEl.value = new Intl.DateTimeFormat(locale, opt).format(now);
-flatpickr(inputEl, options);
+let timerId = null;
 
 function handleStart() {
-  intervalId = setInterval(() => {
-    const promoTime = selectedDate - now;
-    timerContent(convertMs(promoTime));
+  timerId = setInterval(() => {
+    const promoTime = selectDate - new Date();
     btnEl.setAttribute('disabled', true);
-    if (selectedDate - now < 1000) {
-      clearInterval(intervalId);
-      btnEl.removeAttribute('disabled', true);
+    if (promoTime <= 0) {
+      clearInterval(timerId);
+      Notify.success('Time is out');
+      return;
     }
+    const convertTime = convertMs(promoTime);
+    daysEl.textContent = addLeadingZero(convertTime.days);
+    hoursEl.textContent = addLeadingZero(convertTime.hours);
+    minutesEl.textContent = addLeadingZero(convertTime.minutes);
+    secondsEl.textContent = addLeadingZero(convertTime.seconds);
   }, 1000);
 }
-function timerContent({ days, hours, minutes, seconds }) {
-  daysEl.textContent = `${days}`;
-  hoursEl.textContent = `${hours}`;
-  minutesEl.textContent = `${minutes}`;
-  secondsEl.textContent = `${seconds}`;
-}
-// console.log(options.onClose());
-//
+
+flatpickr(inputEl, options);
 
 function convertMs(ms) {
   // Number of milliseconds per unit of time
